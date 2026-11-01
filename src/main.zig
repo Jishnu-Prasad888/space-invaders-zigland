@@ -92,6 +92,47 @@ const player = struct {
     }
 };
 
+const Bullet = struct {
+    width: f32,
+    height: f32,
+    speed: f32,
+    x: f32,
+    y: f32,
+    active: bool,
+
+    pub fn init(x: f32, y: f32, width: f32, height: f32, speed: f32, active: bool) @This() {
+        return .{
+            .x = x,
+            .y = y,
+            .width = width,
+            .height = height,
+            .speed = speed,
+            .active = active,
+        };
+    }
+
+    pub fn update(self: *@This()) void {
+        if (self.active) {
+            self.y -= self.speed;
+            if (self.y + self.height < 0) {
+                self.active = false;
+            }
+        }
+    }
+
+    pub fn draw(self: @This()) void {
+        if (self.active) {
+            rl.drawRectangle(
+                @intFromFloat(self.x),
+                @intFromFloat(self.y),
+                @intFromFloat(self.width),
+                @intFromFloat(self.height),
+                rl.Color.red,
+            );
+        }
+    }
+};
+
 pub fn main() void {
     const screenWidth = 800;
     const screenHeight = 450;
@@ -110,6 +151,16 @@ pub fn main() void {
         5.0,
     );
 
+    const bulletWidth = 5;
+    const bulletHeight = 20;
+    const bulletSpeed = 10.0;
+    const maxBullets = 10;
+    var bullets: [maxBullets]Bullet = undefined;
+
+    for (&bullets) |*bullet| {
+        bullet.* = Bullet.init(0, 0, @as(f32, @floatFromInt(bulletWidth)), @as(f32, @floatFromInt(bulletHeight)), bulletSpeed, false);
+    }
+
     defer rl.closeWindow(); // runs at end of scope here it is the main function itself usefull incas eof something like memory leak when there a early return check out errordefer
 
     rl.setTargetFPS(FPS);
@@ -117,9 +168,30 @@ pub fn main() void {
     while (!rl.windowShouldClose()) {
         rl.beginDrawing();
         defer rl.endDrawing();
+
         rl.clearBackground(rl.Color.black);
+
+        if (rl.isKeyDown(rl.KeyboardKey.space)) {
+            for (&bullets) |*bullet| {
+                if (bullet.active == false) {
+                    bullet.x = p.position_x + p.width / 2 - bullet.width / 2;
+                    bullet.y = p.position_y;
+                    bullet.active = true;
+                    break;
+                }
+            }
+        }
+
+        // update logic
         p.update();
+        for (&bullets) |*bullet| {
+            bullet.update();
+        }
+
+        // draw logic
+        for (&bullets) |*bullet| {
+            bullet.draw();
+        }
         p.draw();
-        rl.drawText("Welcome to Zigland Invader!", 190, 200, 20, rl.Color.green);
     }
 }

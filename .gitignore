@@ -1,4 +1,4 @@
 .zig-cache/
 zig-pkg/
-zig-out/bin/
-zig-out/
+zig-out/bin/*
+zig-out/*
