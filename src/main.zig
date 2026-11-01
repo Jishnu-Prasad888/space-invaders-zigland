@@ -133,6 +133,44 @@ const Bullet = struct {
     }
 };
 
+const Invader = struct {
+    width: f32,
+    height: f32,
+    x: f32,
+    y: f32,
+    alive: bool,
+
+    pub fn init(x: f32, y: f32, width: f32, height: f32) @This() {
+        return .{
+            .x = x,
+            .y = y,
+            .width = width,
+            .height = height,
+            .alive = true,
+        };
+    }
+
+    pub fn update(self: *@This()) void {
+        if (self.alive) {
+            if (self.x + self.width > @as(f32, @floatFromInt(rl.getScreenWidth())) or self.x < 0) {
+                self.y += self.height; // Move down when hitting the edge
+            }
+        }
+    }
+
+    pub fn draw(self: @This()) void {
+        if (self.alive) {
+            rl.drawRectangle(
+                @intFromFloat(self.x),
+                @intFromFloat(self.y),
+                @intFromFloat(self.width),
+                @intFromFloat(self.height),
+                rl.Color.green,
+            );
+        }
+    }
+};
+
 pub fn main() void {
     const screenWidth = 800;
     const screenHeight = 450;
@@ -152,13 +190,37 @@ pub fn main() void {
     );
 
     const bulletWidth = 5;
-    const bulletHeight = 20;
+    const bulletHeight = 5;
     const bulletSpeed = 10.0;
     const maxBullets = 10;
     var bullets: [maxBullets]Bullet = undefined;
 
     for (&bullets) |*bullet| {
         bullet.* = Bullet.init(0, 0, @as(f32, @floatFromInt(bulletWidth)), @as(f32, @floatFromInt(bulletHeight)), bulletSpeed, false);
+    }
+
+    const invaderWidth = 40;
+    const invaderHeight = 30;
+    const invaderSpacingX = 10;
+    const invaderSpacingY = 10;
+    const invaderRows = 5;
+    const invaderCols = 10;
+    const invaderStartY = 50;
+    const invaderStartX = 50;
+
+    var invaders: [invaderRows][invaderCols]Invader = undefined;
+
+    for (&invaders, 0..) |*row, rowIndex| {
+        for (row, 0..) |*invader, colIndex| {
+            const x = @as(f32, @floatFromInt(invaderStartX + colIndex * (invaderWidth + invaderSpacingX)));
+            const y = @as(f32, @floatFromInt(invaderStartY + rowIndex * (invaderHeight + invaderSpacingY)));
+            invader.* = Invader.init(
+                x,
+                y,
+                @as(f32, @floatFromInt(invaderWidth)),
+                @as(f32, @floatFromInt(invaderHeight)),
+            );
+        }
     }
 
     defer rl.closeWindow(); // runs at end of scope here it is the main function itself usefull incas eof something like memory leak when there a early return check out errordefer
@@ -171,7 +233,7 @@ pub fn main() void {
 
         rl.clearBackground(rl.Color.black);
 
-        if (rl.isKeyDown(rl.KeyboardKey.space)) {
+        if (rl.isKeyPressed(rl.KeyboardKey.space)) {
             for (&bullets) |*bullet| {
                 if (bullet.active == false) {
                     bullet.x = p.position_x + p.width / 2 - bullet.width / 2;
@@ -191,6 +253,12 @@ pub fn main() void {
         // draw logic
         for (&bullets) |*bullet| {
             bullet.draw();
+        }
+        for (&invaders) |*row| {
+            for (row) |*invader| {
+                invader.update();
+                invader.draw();
+            }
         }
         p.draw();
     }
