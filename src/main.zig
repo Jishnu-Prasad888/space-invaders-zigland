@@ -200,7 +200,7 @@ pub fn main() void {
 
     var p = player.init(
         @as(f32, @floatFromInt(screenWidth - playerWidth)) / 2.0,
-        @as(f32, @floatFromInt(screenHeight - playerHeight - 10)),
+        @as(f32, @floatFromInt(screenHeight - playerHeight - 20)),
         @as(f32, @floatFromInt(playerWidth)),
         @as(f32, @floatFromInt(playerHeight)),
         5.0,
@@ -244,6 +244,9 @@ pub fn main() void {
         }
     }
 
+    var playerScore: i32 = 0;
+    var timeElapsed: f32 = 0.0;
+
     defer rl.closeWindow(); // runs at end of scope here it is the main function itself usefull incas eof something like memory leak when there a early return check out errordefer
 
     rl.setTargetFPS(FPS);
@@ -272,12 +275,15 @@ pub fn main() void {
                         if (invader.alive and bullet.getRectangle().intersects(invader.getRectangle())) {
                             invader.alive = false;
                             bullet.active = false;
+                            playerScore += 1;
                             break;
                         }
                     }
                 }
             }
         }
+
+        timeElapsed += 1.0 / @as(f32, @floatFromInt(FPS));
 
         // update logic
         p.update();
@@ -331,5 +337,41 @@ pub fn main() void {
             }
         }
         p.draw();
+
+        const score_text = rl.textFormat("Score: %d", .{playerScore});
+        rl.drawText(
+            score_text,
+            10,
+            rl.getScreenHeight() - 20,
+            20,
+            rl.Color.white,
+        );
+
+        const time_text = rl.textFormat("Time: %.2f", .{timeElapsed});
+        rl.drawText(
+            time_text,
+            rl.getScreenWidth() - rl.measureText(time_text, 20) - 10,
+            rl.getScreenHeight() - 30,
+            20,
+            rl.Color.white,
+        );
+
+        const fps_text = rl.textFormat("FPS: %d", .{rl.getFPS()});
+        rl.drawText(
+            fps_text,
+            rl.getScreenWidth() - rl.measureText(fps_text, 20) - 10,
+            rl.getScreenHeight() - 50,
+            20,
+            rl.Color.white,
+        );
+
+        const welcome_text = "Welcome to Zigland Invader!";
+        rl.drawText(
+            welcome_text,
+            @divCeil(rl.getScreenWidth(), 2) - @divCeil(rl.measureText(welcome_text, 20), 2),
+            rl.getScreenHeight() - 20,
+            20,
+            rl.Color.white,
+        );
     }
 }
