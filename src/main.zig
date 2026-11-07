@@ -131,6 +131,15 @@ const Bullet = struct {
             );
         }
     }
+
+    pub fn getRectangle(self: @This()) Rectangle {
+        return .{
+            .x = self.x,
+            .y = self.y,
+            .width = self.width,
+            .height = self.height,
+        };
+    }
 };
 
 const Invader = struct {
@@ -150,11 +159,10 @@ const Invader = struct {
         };
     }
 
-    pub fn update(self: *@This()) void {
+    pub fn update(self: *@This(), dx: f32, dy: f32) void {
         if (self.alive) {
-            if (self.x + self.width > @as(f32, @floatFromInt(rl.getScreenWidth())) or self.x < 0) {
-                self.y += self.height; // Move down when hitting the edge
-            }
+            self.x += dx;
+            self.y += dy;
         }
     }
 
@@ -168,6 +176,15 @@ const Invader = struct {
                 rl.Color.green,
             );
         }
+    }
+
+    pub fn getRectangle(self: @This()) Rectangle {
+        return .{
+            .x = self.x,
+            .y = self.y,
+            .width = self.width,
+            .height = self.height,
+        };
     }
 };
 
@@ -206,8 +223,12 @@ pub fn main() void {
     const invaderRows = 5;
     const invaderCols = 10;
     const invaderStartY = 50;
-    const invaderStartX = 50;
-
+    const invaderStartX = 150;
+    const invaderMoveDelay = 0.5; // seconds
+    const invaderSpeed: f32 = 10.0;
+    var invaderDirection: f32 = 1;
+    var move_timer: f32 = 0; // 1 for right, -1 for left
+    const invaderDropHeight: f32 = 7.0;
     var invaders: [invaderRows][invaderCols]Invader = undefined;
 
     for (&invaders, 0..) |*row, rowIndex| {
@@ -244,6 +265,20 @@ pub fn main() void {
             }
         }
 
+        for (&bullets) |*bullet| {
+            if (bullet.active) {
+                for (&invaders) |*row| {
+                    for (row) |*invader| {
+                        if (invader.alive and bullet.getRectangle().intersects(invader.getRectangle())) {
+                            invader.alive = false;
+                            bullet.active = false;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
         // update logic
         p.update();
         for (&bullets) |*bullet| {
@@ -254,9 +289,44 @@ pub fn main() void {
         for (&bullets) |*bullet| {
             bullet.draw();
         }
+
+        move_timer += 1;
+        if (move_timer >= invaderMoveDelay * @as(f32, @floatFromInt(FPS))) {
+            move_timer = 0;
+
+            var invaderHitEdge = false;
+            for (&invaders) |*row| {
+                for (row) |*invader| {
+                    if (invader.alive) {
+                        if (invader.x <= 0 or invader.x + invader.width >= @as(f32, @floatFromInt(screenWidth))) {
+                            invaderHitEdge = true;
+                            break;
+                        }
+                    }
+
+                    if (invaderHitEdge) break;
+                }
+            }
+
+            if (invaderHitEdge) {
+                invaderDirection *= -1;
+
+                for (&invaders) |*row| {
+                    for (row) |*invader| {
+                        invader.update(0, invaderDropHeight);
+                    }
+                }
+            }
+            for (&invaders) |*row| {
+                for (row) |*invader| {
+                    invader.update(invaderSpeed * invaderDirection, 0);
+                }
+            }
+        }
+
         for (&invaders) |*row| {
             for (row) |*invader| {
-                invader.update();
+                invader.update(0, 0);
                 invader.draw();
             }
         }
